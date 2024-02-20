@@ -10,13 +10,13 @@ import java.io.File
 
 object Main extends ZIOAppDefault {
 
-  case class MyConfig(url: String, urlFromConfigMap: String, secret: String)
+  case class MyConfig(sharedValue: String, configMapValue: String, secretValue: String, anotherSecretValue: String)
   val myConfig = deriveConfig[MyConfig]
   implicit val myConfigEncoder: JsonEncoder[MyConfig] = DeriveJsonEncoder.gen[MyConfig]
 
   val routes = Routes(
     Method.GET / "" -> Handler.fromZIO(ZIO.serviceWith[MyConfig](c => Response.text(c.toJsonPretty))),
-    Method.GET / "host-file" -> Handler.fromFile(new File("/etc-on-host/hosts")).orDie,
+//    Method.GET / "host-file" -> Handler.fromFile(new File("/etc-on-host/hosts")).orDie,
   )
 
   val serverConfig = Config.default.binding("0.0.0.0", 8080)

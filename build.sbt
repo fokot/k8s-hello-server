@@ -1,5 +1,5 @@
 scalaVersion := "2.13.12"
-name := "config-server"
+name := "hello-server"
 organization := "com.cloudfarms"
 version := "1.0"
 
