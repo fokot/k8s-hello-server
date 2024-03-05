@@ -13,6 +13,7 @@ object Main extends ZIOAppDefault {
   case class MyConfig(sharedValue: String, configMapValue: String, secretValue: String, anotherSecretValue: String)
   val myConfig = deriveConfig[MyConfig]
   implicit val myConfigEncoder: JsonEncoder[MyConfig] = DeriveJsonEncoder.gen[MyConfig]
+  val configLayer = ZLayer.fromZIO(TypesafeConfigProvider.fromResourcePath(false).load(myConfig).orDie)
 
   val routes = Routes(
     Method.GET / "" -> Handler.fromZIO(ZIO.serviceWith[MyConfig](c => Response.text(c.toJsonPretty))),
@@ -21,11 +22,18 @@ object Main extends ZIOAppDefault {
 
   val serverConfig = Config.default.binding("0.0.0.0", 8080)
 
+  val runServer = Server
+    .serve(routes.toHttpApp)
+    .provide(
+      configLayer,
+      ZLayer.succeed(serverConfig),
+      Server.live,
+    )
+
+  val runConsole =
+    ZIO.serviceWith[MyConfig](_.toJsonPretty).debug("Config: ").provide(configLayer)
+
   override def run: zio.ZIO[zio.ZIOAppArgs, Throwable, Any] =
-    Server
-      .serve(routes.toHttpApp)
-      .provide(
-        ZLayer.fromZIO(TypesafeConfigProvider.fromResourcePath(false).load(myConfig).orDie),
-          ZLayer.succeed(serverConfig) >>> Server.live,
-      )
+    runServer
+
 }
